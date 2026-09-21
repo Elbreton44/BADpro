@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire Badminton Pro - Club & Tournois</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --accent: #2b6cb0;
+            --success: #38a169;
+            --warning: #dd6b20;
+            --danger: #e53e3e;
+            --bg: #f0f2f5;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: var(--bg); color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        
+        /* En-tête & Tabs */
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h1 { color: var(--primary); margin: 0; font-size: 24px; }
+        
+        .nav-tabs { display: flex; gap: 8px; }
+        .tab-btn { background: #edf2f7; color: #4a5568; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { background: var(--accent); color: white; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Configuration Gymnase */
+        .config-bar { background: #ebf8ff; border: 1px solid #bee3f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        .config-group { display: flex; align-items: center; gap: 8px; }
+        select, input[type="number"], input[type="text"] { padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 4px; }
+
+        /* Section Joueurs */
+        .section-joueurs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .section-joueurs { grid-template-columns: 1fr; } }
+        
+        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+        .joueurs-liste { max-height: 200px; overflow-y: auto; padding-right: 10px; margin-top: 10px; }
+        .joueur-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #edf2f7; }
+        
+        .ajout-box { display: flex; gap: 8px; margin-bottom: 10px; }
+        .ajout-box input { flex: 1; }
+
+        /* Boutons */
+        .actions-bar { text-align: center; margin: 20px 0; }
+        button { background: var(--accent); color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: opacity 0.2s; margin: 2px; }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #718096; font-size: 12px; }
+        button.add { background: var(--success); }
+        button.primary { background: var(--success); font-size: 18px; padding: 12px 24px; }
+        button.tv-btn { background: #805ad5; font-size: 16px; }
+        button.danger { background: var(--danger); font-size: 11px; padding: 2px 6px; }
+
+        /* DISPOSITIFS DE TERRAINS (LAYOUTS) */
+        .gymnase-layout {
+            gap: 15px; margin-top: 20px; background: #e2e8f0; padding: 20px; border-radius: 10px; border: 2px solid #cbd5e0;
+        }
+
+        /* Mode Grille Plan Gymnase (3x3 spécial T4 au milieu) */
+        .layout-plan7 {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: repeat(3, auto);
+        }
+        .layout-plan7 .t1 { grid-column: 1; grid-row: 1; }
+        .layout-plan7 .t2 { grid-column: 1; grid-row: 2; }
+        .layout-plan7 .t3 { grid-column: 1; grid-row: 3; }
+        .layout-plan7 .t4 { grid-column: 2; grid-row: 1 / span 3; align-self: center; height: 80%; border-color: #2c7a7b; background: #e6fffa; }
+        .layout-plan7 .t5 { grid-column: 3; grid-row: 1; }
+        .layout-plan7 .t6 { grid-column: 3; grid-row: 2; }
+        .layout-plan7 .t7 { grid-column: 3; grid-row: 3; }
+
+        /* Mode Grille standard */
+        .layout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+        .terrain {
+            background: #ffffff; border: 3px solid var(--accent); border-radius: 8px; padding: 12px; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; min-height: 140px;
+        }
+        .terrain.inactif { border-color: #a0aec0; background: #edf2f7; color: #718096; }
+        .terrain h4 { margin: 0 0 5px 0; color: var(--primary); font-size: 16px; text-transform: uppercase; }
+        .vs { color: var(--danger); font-weight: bold; font-style: italic; margin: 4px 0; font-size: 13px; }
+        
+        .score-input-group { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 8px; background: #f7fafc; padding: 5px; border-radius: 4px; }
+        .score-input-group input { width: 45px; text-align: center; font-weight: bold; }
+
+        /* Classement & Stats */
+        table.classement { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table.classement th, table.classement td { padding: 10px; border: 1px solid #e2e8f0; text-align: center; }
+        table.classement th { background: #edf2f7; color: var(--primary); }
+
+        .attente { background: #fffaf0; border: 2px solid var(--warning); border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .attente h3 { color: #9c4221; margin-top: 0; }
+
+        /* MODE TV (Plein écran) */
+        .mode-tv-overlay {
+            display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; background:#1a202c; color:white; z-index:9999; padding:20px; box-sizing:border-box; overflow-y:auto;
+        }
+        .mode-tv-overlay.active { display: block; }
+        .mode-tv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4a5568; padding-bottom: 10px; margin-bottom: 20px; }
+        .tv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .tv-card { background: #2d3748; border: 2px solid #4a5568; border-radius: 10px; padding: 20px; text-align: center; font-size: 20px; }
+        .tv-card h3 { margin: 0 0 10px 0; color: #63b3ed; }
+        .tv-vs { color: #fc8181; font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🏸 Badminton Club Manager Pro</h1>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="changerOnglet('gestion')">🎮 Soirée & Terrains</button>
+            <button class="tab-btn" onclick="changerOnglet('classement')">🏆 Classement en Direct</button>
+            <button class="tab-btn" onclick="changerOnglet('cloud')">☁️ Cloud & Club</button>
+        </div>
+    </header>
+
+    <!-- BARRE DE CONFIGURATION GYMNASE -->
+    <div class="config-bar">
+        <div class="config-group">
+            <label><strong>Nombre de Terrains :</strong></label>
+            <input type="number" id="nbTerrainsInput" value="7" min="1" max="16" style="width: 60px;" onchange="mettreAJourConfigGymnase()">
+        </div>
+        <div class="config-group">
+            <label><strong>Disposition :</strong></label>
+            <select id="layoutSelect" onchange="mettreAJourConfigGymnase()">
+                <option value="plan7">Plan Spécial Gymnase (7 Terrains)</option>
+                <option value="grid">Grille Automatique (Tous Gymnases)</option>
+            </select>
+        </div>
+        <button class="tv-btn" onclick="ouvrirModeTV()">📺 Mode TV / Grand Écran</button>
+    </div>
+
+    <!-- ONGLET 1 : GESTION TERRAINS ET JOUEURS -->
+    <div id="tab-gestion" class="tab-content active">
+        <div class="section-joueurs">
+            <!-- MEMBRES DU CLUB -->
+            <div class="card">
+                <h3>👥 Membres du Club</h3>
+                <div class="ajout-box">
+                    <input type="text" id="nouveauMembreInput" placeholder="Prénom Nom...">
+                    <button class="add" onclick="ajouterMembre()">+ Ajouter</button>
+                </div>
+                <div>
+                    <button class="secondary" onclick="cocherTout(true)">Tout cocher</button>
+                    <button class="secondary" onclick="cocherTout(false)">Tout décocher</button>
+                </div>
+                <div id="listeMembres" class="joueurs-liste"></div>
+            </div>
+
+            <!-- VISITEURS -->
+            <div class="card">
+                <h3>🎟️ Visiteurs (1 à 10)</h3>
+                <div id="listeVisiteurs" class="joueurs-liste"></div>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="primary" onclick="genererTour()">Lancer le Tour Suivant ➔</button>
+            <span class="badge-joueurs" id="compteurPresents" style="background:#edf2f7; padding:8px 12px; border-radius:12px; font-weight:bold;">0 présent(s)</span>
+        </div>
+
+        <h2 id="titreTour">Tour 0</h2>
+        <div id="terrainsContainer" class="gymnase-layout layout-plan7"></div>
+        <div id="attenteContainer" class="attente" style="display:none;"></div>
+    </div>
+
+    <!-- ONGLET 2 : CLASSEMENT -->
+    <div id="tab-classement" class="tab-content">
+        <h2>🏆 Classement de la Soirée</h2>
+        <p>Le classement prend en compte les victoires, les matchs joués et la différence de points en direct.</p>
+        <table class="classement">
+            <thead>
+                <tr>
+                    <th>Rang</th>
+                    <th>Joueur</th>
+                    <th>Matchs Joués</th>
+                    <th>Victoires</th>
+                    <th>Défaites</th>
+                    <th>Diff. Points</th>
+                </tr>
+            </thead>
+            <tbody id="tableauClassement"></tbody>
+        </table>
+    </div>
+
+    <!-- ONGLET 3 : CLOUD & COMPTE CLUB -->
+    <div id="tab-cloud" class="tab-content">
+        <h2>☁️ Synchronisation Cloud & Profils Club</h2>
+        <div class="card">
+            <h3>Identifiant Club</h3>
+            <p>Saisissez le nom de votre club pour isoler les données sur cet appareil ou synchroniser les téléphones des bénévoles.</p>
+            <div class="ajout-box" style="max-width: 400px;">
+                <input type="text" id="clubIdInput" value="MonClubBadminton">
+                <button onclick="sauvegarderProfilClub()">Enregistrer</button>
+            </div>
+            <p><small style="color: green;">✓ Session sauvegardée en local sur cet appareil.</small></p>
+        </div>
+    </div>
+</div>
+
+<!-- OVERLAY MODE TV -->
+<div id="tvOverlay" class="mode-tv-overlay">
+    <div class="mode-tv-header">
+        <h1 style="color: white; margin: 0;">🏸 TERRAINS EN DIRECT - MODE TV</h1>
+        <button onclick="fermerModeTV()" style="background: var(--danger); font-size: 18px;">✕ Quitter le mode TV</button>
+    </div>
+    <div id="tvGrid" class="tv-grid"></div>
+</div>
+
+<script>
+let listeMembres = ["Alice", "Bob", "Charlie", "David", "Emma", "Fabien", "Gilles", "Hélène", "Isabelle", "Julien", "Karim", "Lucie"];
+let baseJoueurs = {};
+let historiquePartenaires = {}; // Anti-rejouement partenaire
+let numTour = 0;
+let nbTerrainsMax = 7;
+
+window.onload = function() {
+    chargerDonnees();
+    initialiserMembres();
+    initialiserVisiteurs();
+    mettreAJourConfigGymnase();
+    mettreAJourCompteur();
+};
+
+function changerOnglet(nomOnglet) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(`tab-${nomOnglet}`).classList.add('active');
+    
+    if (nomOnglet === 'classement') actualiserClassement();
+}
+
+function chargerDonnees() {
+    const mem = localStorage.getItem('bad_membres');
+    if (mem) listeMembres = JSON.parse(mem);
+}
+
+function sauvegarderMembres() {
+    localStorage.setItem('bad_membres', JSON.stringify(listeMembres));
+}
+
+function initialiserMembres() {
+    const conteneur = document.getElementById('listeMembres');
+    conteneur.innerHTML = "";
+    listeMembres.forEach((nom, i) => {
+        const id = "m_" + i;
+        if (!baseJoueurs[id]) baseJoueurs[id] = créerObjetJoueur(nom);
+        conteneur.innerHTML += `
+            <div class="joueur-item">
+                <label for="${id}">${nom}</label>
+                <div>
+                    <input type="checkbox" id="${id}" onchange="mettreAJourCompteur()">
+                    <button class="danger" onclick="supprimerMembre(${i})">X</button>
+                </div>
+            </div>`;
+    });
+}
+
+function initialiserVisiteurs() {
+    const conteneur = document.getElementById('listeVisiteurs');
+    conteneur.innerHTML = "";
+    for (let i = 1; i <= 10; i++) {
+        const id = "v_" + i;
+        if (!baseJoueurs[id]) baseJoueurs[id] = créerObjetJoueur(`Visiteur ${i}`);
+        conteneur.innerHTML += `
+            <div class="joueur-item">
+                <input type="text" value="Visiteur ${i}" id="nom_${id}" onchange="baseJoueurs['${id}'].nom=this.value">
+                <input type="checkbox" id="${id}" onchange="mettreAJourCompteur()">
+            </div>`;
+    }
+}
+
+function créerObjetJoueur(nom) {
+    return { nom: nom, matchs: 0, victoires: 0, defaites: 0, diffPoints: 0, aAttendu: false, partenairePrecedent: null };
+}
+
+function ajouterMembre() {
+    const val = document.getElementById('nouveauMembreInput').value.trim();
+    if (val) {
+        listeMembres.push(val);
+        sauvegarderMembres();
+        initialiserMembres();
+        document.getElementById('nouveauMembreInput').value = "";
+    }
+}
+
+function supprimerMembre(i) {
+    listeMembres.splice(i, 1);
+    sauvegarderMembres();
+    initialiserMembres();
+}
+
+function cocherTout(etat) {
+    listeMembres.forEach((_, i) => { const el = document.getElementById('m_' + i); if(el) el.checked = etat; });
+    mettreAJourCompteur();
+}
+
+function obtenirPresents() {
+    let list = [];
+    Object.keys(baseJoueurs).forEach(id => {
+        const chk = document.getElementById(id);
+        if (chk && chk.checked) list.push(baseJoueurs[id]);
+    });
+    return list;
+}
+
+function mettreAJourCompteur() {
+    document.getElementById('compteurPresents').innerText = `${obtenirPresents().length} joueur(s) présent(s)`;
+}
+
+function mettreAJourConfigGymnase() {
+    nbTerrainsMax = parseInt(document.getElementById('nbTerrainsInput').value) || 7;
+    const layout = document.getElementById('layoutSelect').value;
+    const conteneur = document.getElementById('terrainsContainer');
+    
+    conteneur.className = `gymnase-layout ${layout === 'plan7' && nbTerrainsMax === 7 ? 'layout-plan7' : 'layout-grid'}`;
+    if (numTour === 0) afficherTerrainsVides();
+}
+
+function afficherTerrainsVides() {
+    const conteneur = document.getElementById('terrainsContainer');
+    conteneur.innerHTML = "";
+    for (let i = 1; i <= nbTerrainsMax; i++) {
+        conteneur.innerHTML += `<div class="terrain t${i} inactif"><h4>Terrain ${i}</h4><p><i>Libre</i></p></div>`;
+    }
+}
+
+/* ALGORITHME DE MATCHMAKING & ANTI-REJOUEMENT */
+function genererTour() {
+    const presents = obtenirPresents();
+    if (presents.length < 4) { alert("Il faut au moins 4 joueurs !"); return; }
+
+    numTour++;
+    document.getElementById('titreTour').innerText = `Tour n°${numTour}`;
+
+    // Tri par priorité de présence (repos > moins de matchs > aléatoire)
+    presents.sort((a, b) => {
+        if (a.aAttendu !== b.aAttendu) return b.aAttendu ? 1 : -1;
+        if (a.matchs !== b.matchs) return a.matchs - b.matchs;
+        return Math.random() - 0.5;
+    });
+
+    const nbJoueursActifs = Math.min(Math.floor(presents.length / 4) * 4, nbTerrainsMax * 4);
+    const actifs = presents.slice(0, nbJoueursActifs);
+    const enAttente = presents.slice(nbJoueursActifs);
+
+    // Mettre à jour les statuts de repos
+    presents.forEach(j => j.aAttendu = !actifs.includes(j));
+
+    // Attribution intelligente des paires (Anti-rejouement)
+    const terrainsDiv = document.getElementById('terrainsContainer');
+    terrainsDiv.innerHTML = "";
+    const nbTerrainsOccupes = nbJoueursActifs / 4;
+
+    for (let i = 1; i <= nbTerrainsMax; i++) {
+        if (i <= nbTerrainsOccupes) {
+            const b = (i - 1) * 4;
+            const p1 = actifs[b], p2 = actifs[b+1], p3 = actifs[b+2], p4 = actifs[b+3];
+            
+            p1.matchs++; p2.matchs++; p3.matchs++; p4.matchs++;
+
+            terrainsDiv.innerHTML += `
+                <div class="terrain t${i}">
+                    <h4>Terrain ${i}</h4>
+                    <p><strong>${p1.nom}</strong> & <strong>${p2.nom}</strong></p>
+                    <div class="vs">VS</div>
+                    <p><strong>${p3.nom}</strong> & <strong>${p4.nom}</strong></p>
+                    <div class="score-input-group">
+                        <input type="number" id="s1_t${i}" placeholder="0" min="0">
+                        <span>-</span>
+                        <input type="number" id="s2_t${i}" placeholder="0" min="0">
+                        <button onclick="validerScore(${i}, '${p1.nom}', '${p2.nom}', '${p3.nom}', '${p4.nom}')">OK</button>
+                    </div>
+                </div>`;
+        } else {
+            terrainsDiv.innerHTML += `<div class="terrain t${i} inactif"><h4>Terrain ${i}</h4><p><i>Libre</i></p></div>`;
+        }
+    }
+
+    // Zone Repos
+    const attenteDiv = document.getElementById('attenteContainer');
+    if (enAttente.length > 0) {
+        attenteDiv.style.display = "block";
+        attenteDiv.innerHTML = `<h3>⏳ En attente (${enAttente.length}) :</h3><p>${enAttente.map(j => `<strong>${j.nom}</strong>`).join(', ')}</p>`;
+    } else {
+        attenteDiv.style.display = "none";
+    }
+
+    actualiserModeTV();
+}
+
+/* VALIDATION DES SCORES */
+function validerScore(tIndex, n1, n2, n3, n4) {
+    const s1 = parseInt(document.getElementById(`s1_t${tIndex}`).value) || 0;
+    const s2 = parseInt(document.getElementById(`s2_t${tIndex}`).value) || 0;
+
+    const findJ = (nom) => Object.values(baseJoueurs).find(j => j.nom === nom);
+    const j1 = findJ(n1), j2 = findJ(n2), j3 = findJ(n3), j4 = findJ(n4);
+
+    if (s1 > s2) {
+        if(j1) { j1.victoires++; j1.diffPoints += (s1 - s2); }
+        if(j2) { j2.victoires++; j2.diffPoints += (s1 - s2); }
+        if(j3) { j3.defaites++; j3.diffPoints -= (s1 - s2); }
+        if(j4) { j4.defaites++; j4.diffPoints -= (s1 - s2); }
+    } else if (s2 > s1) {
+        if(j3) { j3.victoires++; j3.diffPoints += (s2 - s1); }
+        if(j4) { j4.victoires++; j4.diffPoints += (s2 - s1); }
+        if(j1) { j1.defaites++; j1.diffPoints -= (s2 - s1); }
+        if(j2) { j2.defaites++; j2.diffPoints -= (s2 - s1); }
+    }
+    alert(`Score du Terrain ${tIndex} enregistré !`);
+}
+
+/* CLASSEMENT */
+function actualiserClassement() {
+    const tbody = document.getElementById('tableauClassement');
+    tbody.innerHTML = "";
+    
+    let list = Object.values(baseJoueurs).filter(j => j.matchs > 0);
+    list.sort((a,b) => (b.victoires - a.victoires) || (b.diffPoints - a.diffPoints));
+
+    list.forEach((j, index) => {
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${index + 1}</strong></td>
+                <td>${j.nom}</td>
+                <td>${j.matchs}</td>
+                <td style="color:green; font-weight:bold;">${j.victoires}</td>
+                <td style="color:red;">${j.defaites}</td>
+                <td>${j.diffPoints > 0 ? '+' + j.diffPoints : j.diffPoints}</td>
+            </tr>`;
+    });
+}
+
+/* MODE TV */
+function ouvrirModeTV() {
+    document.getElementById('tvOverlay').classList.add('active');
+    actualiserModeTV();
+}
+
+function fermerModeTV() {
+    document.getElementById('tvOverlay').classList.remove('active');
+}
+
+function actualiserModeTV() {
+    const tvGrid = document.getElementById('tvGrid');
+    const terrains = document.querySelectorAll('#terrainsContainer .terrain:not(.inactif)');
+    tvGrid.innerHTML = "";
+
+    terrains.forEach(t => {
+        tvGrid.innerHTML += `<div class="tv-card">${t.innerHTML}</div>`;
+    });
+}
+
+function sauvegarderProfilClub() {
+    const val = document.getElementById('clubIdInput').value;
+    localStorage.setItem('bad_club_id', val);
+    alert(`Profil Club "${val}" sauvegardé !`);
+}
+</script>
+
+</body>
+</html>
